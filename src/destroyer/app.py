@@ -16,7 +16,7 @@ class App:
  def _layout(self):
   header=tk.Frame(self.root,bg=BG); header.pack(fill='x',padx=16,pady=(12,6)); tk.Label(header,text='2048 DESTROYER',bg=BG,fg=FG,font=('Segoe UI',23,'bold')).pack(side='left'); tk.Label(header,text='NEURAL NETWORK LAB  /  DQN  /  4 LAYERS',bg=BG,fg=ACC,font=('Consolas',10)).pack(side='left',padx=18,pady=9)
   toolbar=tk.Frame(self.root,bg=BG); toolbar.pack(fill='x',padx=16,pady=6)
-  for label,cmd in [('▶ TRAIN',self.start_training),('■ STOP',self.stop_training),('↻ NEW GAME',self.new_game),('STEP AI',self.ai_step),('▶ AUTO PLAY',self.auto_play),('SAVE MODEL',self.save_model),('LOAD MODEL',self.load_model),('EVALUATE ×100',self.evaluate)]: ttk.Button(toolbar,text=label,command=cmd).pack(side='left',pad=(0,6))
+  for label,cmd in [('▶ TRAIN',self.start_training),('■ STOP',self.stop_training),('↻ NEW GAME',self.new_game),('STEP AI',self.ai_step),('▶ AUTO PLAY',self.auto_play),('SAVE MODEL',self.save_model),('LOAD MODEL',self.load_model),('EVALUATE ×100',self.evaluate)]: ttk.Button(toolbar,text=label,command=cmd).pack(side='left',padx=(0,6))
   body=tk.Frame(self.root,bg=BG); body.pack(fill='both',expand=True,padx=16,pady=8); body.columnconfigure(0,weight=1); body.columnconfigure(1,weight=1); body.columnconfigure(2,weight=1); body.rowconfigure(0,weight=1)
   left=tk.Frame(body,bg=BG); left.grid(row=0,column=0,sticky='nsew',pad=(0,8,10,10)); mid=tk.Frame(body,bg=BG); mid.grid(row=0,column=1,sticky='nsew',pad=8); right=tk.Frame(body,bg=BG); right.grid(row=0,column=2,sticky='nsew',pad=(8,0,0,8))
   self.board_canvas=tk.Canvas(left,width=488,height=488,bg='#344452',highlightthickness=0); self.board_canvas.pack(pady=8)
@@ -28,7 +28,7 @@ class App:
   self.net=tk.LabelFrame(mid,text='NETWORK / TRAINING',bg=BG,fg=FG,padx=8,pady=8); self.net.pack(fill='x',pady=8); self.stats={}
   for k in ['Episode','Train steps','Epsilon','Loss','Device','Replay','Avg score (50)','Avg max tile (50)','2048 rate','4096 rate']:
    row=tk.Frame(self.net,bg=BG); row.pack(fill='x'); tk.Label(row,text=k,bg=BG,fg=MUTED,width=19,anchor='w').pack(side='left'); v=tk.Label(row,text='—',bg=BG,fg=FG,font=('Consolas',10),anchor='e'); v.pack(side='right'); self.stats[k]=v
-  self.debug=tk.LabelFrame(mid,text='LIVE DEBUG',bg=BG,fg=FG,padx=8,pady=6); self.debug.pack(fill='both',expand=True); self.debug_text=tk.Text(self.debug,height=10,bg='#0c1218',fg='#a7e4c6',insertbackground=FG,font=('Consolas',9),wrap='word'); self.debug_text.pack(fill='both',expand=True); self.log('Application ready. Model parameters: 27,844')
+  self.debug=tk.LabelFrame(mid,text='LIVE DEBUG',bg=BG,fg=FG,padx=8,pady=6); self.debug.pack(fill='both',expand=True); self.debug_text=tk.Text(self.debug,height=10,bg='#0c1218',fg='#a7e4c6',insertbackground=FG,font=('Consolas',9),wrap='word'); self.debug_text.pack(fill='both',expand=True); self.log('Application ready. Model parameters: 27,204')
   right_top=tk.LabelFrame(right,text='TRAINING HISTORY',bg=BG,fg=FG,padx=5,pady=5); right_top.pack(fill='x'); self.chart=tk.Canvas(right_top,height=190,bg='#0c1218',highlightthickness=0); self.chart.pack(fill='x')
   self.history_tree=ttk.Treeview(right,columns=('ep','score','tile','moves','loss'),show='headings',height=13); 
   for c,t,w in [('ep','EP',50),('score','SCORE',80),('tile','MAX',60),('moves','MOVES',60),('loss','LOSS',70)]: self.history_tree.heading(c,text=t); self.history_tree.column(c,width=w,anchor='center')
@@ -121,9 +121,6 @@ class App:
   result={'games':100,'avg_score':sum(scores)/100,'median_score':float(np.median(scores)),'max_tile':max(tiles),'rate2048':sum(t>=2048 for t in tiles)/100,'rate4096':sum(t>=4096 for t in tiles)/100}
   self.uiq.put(('eval',result))
   self.uiq.put(('log',f'EVAL 100: avg={result["avg_score"]:.1f}, median={result["median_score"]:.1f}, max={result["max_tile"]}, 2048={result["rate2048"]*100:.1f}%'))
-if __name__=='__main__':
- root=tk.Tk(); app=App(root); root.mainloop()
-
 if __name__ == '__main__':
  root=tk.Tk(); app=App(root); root.mainloop()
 
