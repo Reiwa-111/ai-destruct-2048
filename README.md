@@ -13,6 +13,16 @@ python -m destroyer.app
 
 Or double-click `RUN.bat` (Python and dependencies must already be installed).
 
+### AMD GPU (WSL2 + ROCm)
+
+For GPU training, use `RUN_GPU_WSL.bat`. It launches the app inside Ubuntu-24.04 WSL
+using the existing `~/reiwa-rocm` environment and refuses to start if PyTorch cannot
+see the GPU. The regular `RUN.bat` remains the Windows/CPU path.
+
+The DQN network, optimizer, sampled replay batches, and replay storage live on the
+selected PyTorch device. The WSL ROCm build exposes the AMD GPU through PyTorch's
+`torch.cuda` API. Replay storage uses fixed-size tensors instead of Python objects.
+
 ## Controls
 
 - Arrow keys: manual moves

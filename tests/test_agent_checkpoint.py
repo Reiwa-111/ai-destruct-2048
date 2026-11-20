@@ -19,4 +19,16 @@ def test_checkpoint_restores_training_state_and_replay(tmp_path):
     assert restored.steps == 17
     assert restored.epsilon == 0.37
     assert len(restored.replay) == 2
-    assert restored.replay.data[0][1] == 0
+    assert restored.replay.actions[0].item() == 0
+    assert restored.replay.states.device.type == 'cpu'
+
+
+def test_replay_samples_tensor_batch_on_selected_device():
+    agent = DQNAgent(device='cpu', batch=2)
+    game = Game2048()
+    state = encode(game.board)
+    agent.replay.add(state, 0, 0.5, state, False)
+    agent.replay.add(state, 1, -1.0, state, True)
+    batch = agent.replay.sample(2)
+    assert [tensor.shape for tensor in batch] == [(2, 16), (2,), (2,), (2, 16), (2,)]
+    assert all(t.device.type == 'cpu' for t in batch)
