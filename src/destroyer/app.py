@@ -18,13 +18,13 @@ class App:
   toolbar=tk.Frame(self.root,bg=BG); toolbar.pack(fill='x',padx=16,pady=6)
   for label,cmd in [('▶ TRAIN',self.start_training),('■ STOP',self.stop_training),('↻ NEW GAME',self.new_game),('STEP AI',self.ai_step),('▶ AUTO PLAY',self.auto_play),('SAVE MODEL',self.save_model),('LOAD MODEL',self.load_model),('EVALUATE ×100',self.evaluate)]: ttk.Button(toolbar,text=label,command=cmd).pack(side='left',padx=(0,6))
   body=tk.Frame(self.root,bg=BG); body.pack(fill='both',expand=True,padx=16,pady=8); body.columnconfigure(0,weight=1); body.columnconfigure(1,weight=1); body.columnconfigure(2,weight=1); body.rowconfigure(0,weight=1)
-  left=tk.Frame(body,bg=BG); left.grid(row=0,column=0,sticky='nsew',pad=(0,8,10,10)); mid=tk.Frame(body,bg=BG); mid.grid(row=0,column=1,sticky='nsew',pad=8); right=tk.Frame(body,bg=BG); right.grid(row=0,column=2,sticky='nsew',pad=(8,0,0,8))
+  left=tk.Frame(body,bg=BG); left.grid(row=0,column=0,sticky='nsew',padx=(0,8),pady=(0,10)); mid=tk.Frame(body,bg=BG); mid.grid(row=0,column=1,sticky='nsew',padx=8,pady=8); right=tk.Frame(body,bg=BG); right.grid(row=0,column=2,sticky='nsew',padx=(8,0),pady=(8,0))
   self.board_canvas=tk.Canvas(left,width=488,height=488,bg='#344452',highlightthickness=0); self.board_canvas.pack(pady=8)
   score=tk.Frame(left,bg=BG); score.pack(fill='x',padx=10); self.score_label=self.metric(score,'SCORE','0'); self.best_label=self.metric(score,'BEST TILE','2'); self.moves_label=self.metric(score,'MOVES','0')
   self.board_info=tk.Label(left,text='Arrow keys: manual moves   |   SPACE: autoplay',bg=BG,fg=MUTED,font=('Consolas',10)); self.board_info.pack(pady=5)
   self.q_frame=tk.LabelFrame(mid,text='Q-VALUE ANALYSIS',bg=BG,fg=FG,padx=8,pady=8); self.q_frame.pack(fill='x'); self.qbars={}
   for action in ACTIONS:
-   row=tk.Frame(self.q_frame,bg=BG); row.pack(fill='x',pady=3); tk.Label(row,text=action,width=7,bg=BG,fg=FG,font=('Consolas',10)).pack(side='left'); bar=tk.Canvas(row,width=200,height=18,bg=PANEL,highlightthickness=0); bar.pack(side='left',pad=4); val=tk.Label(row,text='0.000',width=9,bg=BG,fg=FG,font=('Consolas',10)); val.pack(side='right'); self.qbars[action]=(bar,val)
+   row=tk.Frame(self.q_frame,bg=BG); row.pack(fill='x',pady=3); tk.Label(row,text=action,width=7,bg=BG,fg=FG,font=('Consolas',10)).pack(side='left'); bar=tk.Canvas(row,width=200,height=18,bg=PANEL,highlightthickness=0); bar.pack(side='left',padx=4); val=tk.Label(row,text='0.000',width=9,bg=BG,fg=FG,font=('Consolas',10)); val.pack(side='right'); self.qbars[action]=(bar,val)
   self.net=tk.LabelFrame(mid,text='NETWORK / TRAINING',bg=BG,fg=FG,padx=8,pady=8); self.net.pack(fill='x',pady=8); self.stats={}
   for k in ['Episode','Train steps','Epsilon','Loss','Device','Replay','Avg score (50)','Avg max tile (50)','2048 rate','4096 rate']:
    row=tk.Frame(self.net,bg=BG); row.pack(fill='x'); tk.Label(row,text=k,bg=BG,fg=MUTED,width=19,anchor='w').pack(side='left'); v=tk.Label(row,text='—',bg=BG,fg=FG,font=('Consolas',10),anchor='e'); v.pack(side='right'); self.stats[k]=v
