@@ -19,7 +19,7 @@ class App:
   for label,cmd in [('▶ TRAIN',self.start_training),('■ STOP',self.stop_training),('↻ NEW GAME',self.new_game),('STEP AI',self.ai_step),('▶ AUTO PLAY',self.auto_play),('SAVE MODEL',self.save_model),('LOAD MODEL',self.load_model),('EVALUATE ×100',self.evaluate)]: ttk.Button(toolbar,text=label,command=cmd).pack(side='left',pad=(0,6))
   body=tk.Frame(self.root,bg=BG); body.pack(fill='both',expand=True,padx=16,pady=8); body.columnconfigure(0,weight=1); body.columnconfigure(1,weight=1); body.columnconfigure(2,weight=1); body.rowconfigure(0,weight=1)
   left=tk.Frame(body,bg=BG); left.grid(row=0,column=0,sticky='nsew',pad=(0,8,10,10)); mid=tk.Frame(body,bg=BG); mid.grid(row=0,column=1,sticky='nsew',pad=8); right=tk.Frame(body,bg=BG); right.grid(row=0,column=2,sticky='nsew',pad=(8,0,0,8))
-  self.board_canvas=tk.Canvas(left,width=472,height=472,bg='#344452',highlightthickness=0); self.board_canvas.pack(pady=8)
+  self.board_canvas=tk.Canvas(left,width=488,height=488,bg='#344452',highlightthickness=0); self.board_canvas.pack(pady=8)
   score=tk.Frame(left,bg=BG); score.pack(fill='x',padx=10); self.score_label=self.metric(score,'SCORE','0'); self.best_label=self.metric(score,'BEST TILE','2'); self.moves_label=self.metric(score,'MOVES','0')
   self.board_info=tk.Label(left,text='Arrow keys: manual moves   |   SPACE: autoplay',bg=BG,fg=MUTED,font=('Consolas',10)); self.board_info.pack(pady=5)
   self.q_frame=tk.LabelFrame(mid,text='Q-VALUE ANALYSIS',bg=BG,fg=FG,padx=8,pady=8); self.q_frame.pack(fill='x'); self.qbars={}
@@ -80,9 +80,9 @@ class App:
    while not self.stop_flag.is_set():
     g=Game2048(); done=False; total=0; steps=0
     while not done and not self.stop_flag.is_set():
-     state=encode(g.board); legal=g.legal_actions(); aidx=self.agent.act(g.board,legal,True); action=ACTIONS[aidx]; step=g.move(action); done=step.game_over; nextstate=encode(g.board)
+     state=encode(g.board); old_max=g.max_tile; legal=g.legal_actions(); aidx=self.agent.act(g.board,legal,True); action=ACTIONS[aidx]; step=g.move(action); done=step.game_over; nextstate=encode(g.board)
      reward=float(step.score_delta)/10.0 + (0.02*g.empty_count) - (0.1 if not step.moved else 0)
-     if step.moved and g.max_tile>0: reward+=0.05
+     if g.max_tile>old_max: reward+=0.5*math.log2(g.max_tile/old_max) if old_max else 0.5
      self.agent.replay.add(state,aidx,reward,nextstate,done); loss=self.agent.learn(); total+=step.score_delta; steps+=1
      self.agent.epsilon=max(.05,self.agent.epsilon*.999995)
      if steps%200==0: self.uiq.put(('progress',g.board,total,steps,action,reward,done))
@@ -126,5 +126,6 @@ if __name__=='__main__':
 
 if __name__ == '__main__':
  root=tk.Tk(); app=App(root); root.mainloop()
+
 
 
