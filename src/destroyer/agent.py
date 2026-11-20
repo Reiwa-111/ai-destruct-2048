@@ -45,7 +45,11 @@ class DQNAgent:
         self.steps+=1
         if self.steps%self.sync_every==0: self.target.load_state_dict(self.online.state_dict())
         self.loss_value=float(loss.item()); return self.loss_value
-    def save(self,path,episodes=0): torch.save({'model':self.online.state_dict(),'target':self.target.state_dict(),'optimizer':self.optimizer.state_dict(),'episodes':episodes,'steps':self.steps,'epsilon':self.epsilon},path)
+    def save(self,path,episodes=0,include_replay=True):
+        torch.save({'model':self.online.state_dict(),'target':self.target.state_dict(),'optimizer':self.optimizer.state_dict(),'episodes':episodes,'steps':self.steps,'epsilon':self.epsilon,'replay':list(self.replay.data) if include_replay else None,'python_rng':random.getstate()},path)
     def load(self,path):
-        data=torch.load(path,map_location=self.device,weights_only=False); self.online.load_state_dict(data['model']); self.target.load_state_dict(data.get('target',data['model'])); self.optimizer.load_state_dict(data['optimizer']); self.steps=data.get('steps',0); self.epsilon=data.get('epsilon',.1); return data.get('episodes',0)
+        data=torch.load(path,map_location=self.device,weights_only=False); self.online.load_state_dict(data['model']); self.target.load_state_dict(data.get('target',data['model'])); self.optimizer.load_state_dict(data['optimizer']); self.steps=data.get('steps',0); self.epsilon=data.get('epsilon',.1)
+        if data.get('replay') is not None: self.replay.data.clear(); self.replay.data.extend(data['replay'])
+        if data.get('python_rng') is not None: random.setstate(data['python_rng'])
+        return data.get('episodes',0)
 

@@ -1,6 +1,6 @@
 ﻿import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
-import threading, time, random, json, os, math, queue
+from tkinter import ttk, filedialog, messagebox, simpledialog
+import threading, time, random, json, os, math, queue, re
 import numpy as np
 import torch
 from destroyer import Game2048, DQNAgent, ACTIONS, encode
@@ -9,14 +9,14 @@ BG='#111820'; PANEL='#1b2632'; FG='#e9f0f4'; MUTED='#91a2b2'; ACC='#50d890'; BLU
 class App:
  def __init__(self,root):
   self.root=root; root.title('2048 DESTROYER | Neural Agent Lab'); root.geometry('1420x900'); root.minsize(1180,760); root.configure(bg=BG)
-  self.game=Game2048(); self.agent=DQNAgent(); self.training=False; self.stop_flag=threading.Event(); self.uiq=queue.Queue(); self.episode=0; self.episodes=[]; self.history=[]; self.last_action='—'; self.last_reward=0; self.last_loss=0; self.last_move='—'; self.eval_games=0; self.eval_2048=0; self.eval_best=0; self.train_thread=None
+  self.game=Game2048(); self.agent=DQNAgent(); self.training=False; self.stop_flag=threading.Event(); self.uiq=queue.Queue(); self.episode=0; self.episodes=[]; self.history=[]; self.last_action='—'; self.last_reward=0; self.last_loss=0; self.last_move='—'; self.eval_games=0; self.eval_2048=0; self.eval_best=0; self.train_thread=None; self.models_dir=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'models'); os.makedirs(self.models_dir,exist_ok=True); self.best_score=-1
   self._style(); self._layout(); self.render(); self.refresh_stats(); self.root.bind('<Up>',lambda e:self.manual('UP')); self.root.bind('<Down>',lambda e:self.manual('DOWN')); self.root.bind('<Left>',lambda e:self.manual('LEFT')); self.root.bind('<Right>',lambda e:self.manual('RIGHT')); self.root.bind('<space>',lambda e:self.manual_auto()); self.root.after(150,self.poll)
  def _style(self):
   s=ttk.Style(); s.theme_use('clam'); s.configure('TButton',font=('Segoe UI',10),padding=7); s.configure('TLabel',background=BG,foreground=FG,font=('Segoe UI',10)); s.configure('TFrame',background=BG); s.configure('TLabelframe',background=BG,foreground=FG); s.configure('TLabelframe.Label',background=BG,foreground=FG,font=('Segoe UI',10,'bold'))
  def _layout(self):
   header=tk.Frame(self.root,bg=BG); header.pack(fill='x',padx=16,pady=(12,6)); tk.Label(header,text='2048 DESTROYER',bg=BG,fg=FG,font=('Segoe UI',23,'bold')).pack(side='left'); tk.Label(header,text='NEURAL NETWORK LAB  /  DQN  /  4 LAYERS',bg=BG,fg=ACC,font=('Consolas',10)).pack(side='left',padx=18,pady=9)
   toolbar=tk.Frame(self.root,bg=BG); toolbar.pack(fill='x',padx=16,pady=6)
-  for label,cmd in [('▶ TRAIN',self.start_training),('■ STOP',self.stop_training),('↻ NEW GAME',self.new_game),('STEP AI',self.ai_step),('▶ AUTO PLAY',self.auto_play),('SAVE MODEL',self.save_model),('LOAD MODEL',self.load_model),('EVALUATE ×100',self.evaluate)]: ttk.Button(toolbar,text=label,command=cmd).pack(side='left',padx=(0,6))
+  for label,cmd in [('▶ TRAIN',self.start_training),('■ STOP',self.stop_training),('↻ NEW GAME',self.new_game),('STEP AI',self.ai_step),('▶ AUTO PLAY',self.auto_play),('🧠 MODELS',self.model_manager),('EVALUATE ×100',self.evaluate)]: ttk.Button(toolbar,text=label,command=cmd).pack(side='left',padx=(0,6))
   body=tk.Frame(self.root,bg=BG); body.pack(fill='both',expand=True,padx=16,pady=8); body.columnconfigure(0,weight=1); body.columnconfigure(1,weight=1); body.columnconfigure(2,weight=1); body.rowconfigure(0,weight=1)
   left=tk.Frame(body,bg=BG); left.grid(row=0,column=0,sticky='nsew',padx=(0,8),pady=(0,10)); mid=tk.Frame(body,bg=BG); mid.grid(row=0,column=1,sticky='nsew',padx=8,pady=8); right=tk.Frame(body,bg=BG); right.grid(row=0,column=2,sticky='nsew',padx=(8,0),pady=(8,0))
   self.board_canvas=tk.Canvas(left,width=488,height=488,bg='#344452',highlightthickness=0); self.board_canvas.pack(pady=8)
@@ -88,6 +88,13 @@ class App:
      if steps%200==0: self.uiq.put(('progress',g.board,total,steps,action,reward,done))
     if self.stop_flag.is_set(): break
     self.episode+=1; rec={'episode':self.episode,'score':total,'tile':g.max_tile,'moves':steps,'loss':self.agent.loss_value}; self.episodes.append(rec); self.uiq.put(('episode',rec))
+    if self.episode%10==0:
+     try: self.agent.save(os.path.join(self.models_dir,'latest.pt'),self.episode,include_replay=True)
+     except Exception as e: self.uiq.put(('log',f'AUTOSAVE FAILED: {e!r}'))
+    if total>self.best_score:
+     self.best_score=total
+     try: self.agent.save(os.path.join(self.models_dir,'best.pt'),self.episode,include_replay=False)
+     except Exception as e: self.uiq.put(('log',f'BEST SAVE FAILED: {e!r}'))
   except Exception as e: self.uiq.put(('error',repr(e)))
  def poll(self):
   try:
@@ -100,14 +107,43 @@ class App:
     elif item[0]=='error': self.log('TRAIN ERROR: '+item[1]); self.training=False; self.stop_flag.set()
   except queue.Empty: pass
   self.refresh_stats(); self.root.after(150,self.poll)
- def save_model(self):
-  p=filedialog.asksaveasfilename(defaultextension='.pt',filetypes=[('PyTorch checkpoint','*.pt')]);
-  if p: self.agent.save(p,self.episode); self.log('Saved checkpoint '+p)
- def load_model(self):
-  p=filedialog.askopenfilename(filetypes=[('PyTorch checkpoint','*.pt')]);
-  if p:
-   try: self.episode=self.agent.load(p); self.log('Loaded checkpoint '+p); self.render()
-   except Exception as e: messagebox.showerror('Checkpoint error',str(e))
+ def model_manager(self):
+  win=tk.Toplevel(self.root); win.title('Model manager'); win.geometry('660x440'); win.configure(bg=BG); win.transient(self.root)
+  tk.Label(win,text='SAVED MODELS',bg=BG,fg=FG,font=('Segoe UI',15,'bold')).pack(anchor='w',pad=12)
+  listing=tk.Listbox(win,bg=PANEL,fg=FG,selectbackground=ACC,font=('Consolas',10)); listing.pack(fill='both',expand=True,padx=12,pady=6)
+  def refresh():
+   listing.delete(0,'end')
+   for f in sorted(os.listdir(self.models_dir)):
+    if f.lower().endswith('.pt'): listing.insert('end',f)
+  def selected():
+   sel=listing.curselection(); return os.path.join(self.models_dir,listing.get(sel[0])) if sel else None
+  def save_named():
+   name=simpledialog.askstring('Save model','Model name:',parent=win)
+   if not name:return
+   safe=re.sub(r'[^a-zA-Z0-9._-]+','_',name).strip('._')
+   if not safe: messagebox.showwarning('Invalid name','Enter a valid model name.',parent=win); return
+   path=os.path.join(self.models_dir,safe+'.pt')
+   if os.path.exists(path) and not messagebox.askyesno('Overwrite','This model already exists. Replace it?',parent=win):return
+   try:self.agent.save(path,self.episode,include_replay=True); self.log('Saved model '+safe); refresh()
+   except Exception as e:messagebox.showerror('Save failed',str(e),parent=win)
+  def load_selected():
+   path=selected()
+   if not path:return
+   try:self.episode=self.agent.load(path); self.log('Loaded '+os.path.basename(path)); self.render(); win.destroy()
+   except Exception as e:messagebox.showerror('Load failed',str(e),parent=win)
+  def delete_selected():
+   path=selected()
+   if path and messagebox.askyesno('Delete model',f'Delete {os.path.basename(path)}?',parent=win):
+    os.remove(path); refresh()
+  def export_model():
+   path=selected()
+   if path:
+    target=filedialog.asksaveasfilename(parent=win,defaultextension='.pt',initialfile=os.path.basename(path),filetypes=[('PyTorch checkpoint','*.pt')])
+    if target:
+     import shutil; shutil.copy2(path,target); self.log('Exported '+target)
+  buttons=tk.Frame(win,bg=BG); buttons.pack(fill='x',padx=12,pady=10)
+  for label,fn in [('SAVE CURRENT',save_named),('LOAD',load_selected),('DELETE',delete_selected),('EXPORT',export_model),('CLOSE',win.destroy)]:ttk.Button(buttons,text=label,command=fn).pack(side='left',padx=4)
+  refresh()
  def evaluate(self):
   if self.training: messagebox.showinfo('Busy','Stop training before evaluation.'); return
   self.log('Evaluating 100 games...'); threading.Thread(target=self.eval_loop,daemon=True).start()
