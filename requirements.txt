@@ -1,0 +1,5 @@
+﻿# 2048 DESTROYER dependencies
+numpy>=1.26
+torch>=2.4
+matplotlib>=3.8
+pygame>=2.5

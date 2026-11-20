@@ -29,3 +29,4 @@ An experimental neural-network agent trained to dominate the 4x4 game 2048.
 ## Evaluation goal
 
 The fun headline goal is to make the agent *destroy 2048*: reach the 2048 tile consistently, then measure whether it can reliably exceed it. No claim of success until repeated evaluation runs support it.
+
