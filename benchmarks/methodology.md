@@ -14,6 +14,18 @@ Benchmarks measure playing strength and search cost. Training metrics are not ev
 - **Metrics:** score mean/median/range; max-tile attainment rates; game length; search nodes/cache hits; completed depth; and per-decision latency distribution when available.
 - **Uncertainty:** use Wilson confidence intervals for tile-attainment proportions and paired bootstrap intervals for mean score differences. A small sample is exploratory.
 
+## Provenance checklist
+
+For every result intended for publication, record:
+
+- Exact checkpoint filename, format/version, and SHA-256. A filename alone is not a model identity.
+- Source commit and native shared-library SHA-256; record compiler version and build flags for native runs.
+- Backend actually used (`native-c++` or Python fallback), search depth, node budget, time target, and optional transforms.
+- Runtime environment, CPU/GPU device, Python and relevant numerical-library versions.
+- Game count, complete inclusive seed range, raw JSON report, and the report's SHA-256.
+
+Keep the checkpoint and raw report available alongside the hash. A hash proves identity, not availability: a benchmark cannot be independently rerun from a model that is not distributed or otherwise accessible.
+
 ## Commands
 
 Greedy N-tuple holdout:

@@ -82,20 +82,22 @@ Read [GPU setup and validation](docs/gpu.md) before attempting this environment.
 
 ## Latest benchmark snapshot
 
-The current recorded hybrid holdout uses a continued N-tuple checkpoint trained for 1M additional episodes, depth cap 3, 500,000-node cap, and 1 ms search budget over 100 fresh games (seeds `1000000–1000099`).
+The latest hybrid holdout uses the current `ntuple_fresh_continue1m5_more500k` checkpoint and evaluates 100 fresh games (seeds `9100000–9100099`). Search is capped at depth 3, 500,000 nodes, and a 1 ms target per decision.
 
 | Metric | Result |
 |---|---:|
-| Mean score | 190,098.6 |
-| Median score | 175,480 |
+| Mean score | 208,339.9 |
+| Median score | 177,018 |
+| Score range | 80,356–368,108 |
 | Reached 2048 | 100/100 |
 | Reached 4096 | 100/100 |
-| Reached 8192 | 89/100 |
-| Reached 16384 | 28/100 |
-| Mean decision latency | 1.027 ms |
-| Decision-latency P95 | 1.085 ms |
+| Reached 8192 | 99/100 |
+| Reached 16384 | 36/100 |
+| Mean moves/game | 8,327.2 |
+| Mean decision latency | 1.041 ms |
+| Mean per-game decision-latency P95 | 1.091 ms |
 
-The observed 100% 2048 rate has a Wilson 95% confidence interval of 96.3–100.0%; this sample does not establish a 99% lower confidence bound. One recorded decision latency reached 107 ms, so mean/P95 latency should not be interpreted as a hard real-time guarantee. Check [benchmark results](benchmarks/results.md) and [methodology](benchmarks/methodology.md) for context and other experiments.
+The observed 100/100 rates for 2048 and 4096 have Wilson 95% confidence intervals of 96.3–100.0%; this sample does not establish a 99% lower confidence bound. The maximum recorded decision latency was 842.2 ms, so the 1 ms search budget and mean/P95 values are not hard real-time guarantees. Exact checkpoint/native-library hashes and the run command are recorded in [benchmark results](benchmarks/results.md); see [methodology](benchmarks/methodology.md) for the evaluation protocol.
 
 ## Documentation
 
