@@ -1,26 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV="${REIWA_ROCM_VENV:-$HOME/reiwa-rocm}"
-PROJECT="/mnt/q/PROJECTS/2048-DESTROYER"
+PYTHON="$VENV/bin/python"
 
-if [[ ! -x "$VENV/bin/python" ]]; then
-  echo "ROCm Python venv not found: $VENV" >&2
+fail() {
+  echo "[DESTROYER ROCm 6.4.2] ERROR: $*" >&2
   exit 2
-fi
-if [[ ! -d "$PROJECT/src/destroyer" ]]; then
-  echo "Project path not found: $PROJECT" >&2
-  exit 2
-fi
+}
 
-source "$VENV/bin/activate"
-python - <<'PY'
-import torch
-if not torch.cuda.is_available():
-    raise SystemExit('PyTorch ROCm GPU is unavailable; refusing silent CPU fallback.')
-print(f'GPU: {torch.cuda.get_device_name(0)} | PyTorch {torch.__version__}')
-PY
+[[ -e /dev/dxg ]] || fail "WSL GPU device /dev/dxg is missing. Check the Windows AMD driver and WSL update."
+[[ -x "$PYTHON" ]] || fail "Python environment not found: $VENV"
+[[ -d "$PROJECT/src/destroyer" ]] || fail "Project path not found: $PROJECT"
+[[ -e /opt/rocm/lib/libhsa-runtime64.so.1 ]] || fail "System ROCm HSA runtime is missing under /opt/rocm/lib."
+[[ -e /usr/lib/wsl/lib/libdxcore.so ]] || fail "WSL DXCore library is missing: /usr/lib/wsl/lib/libdxcore.so"
+
+export HSA_ENABLE_DXG_DETECTION=1
+export LD_LIBRARY_PATH="/opt/rocm/lib:/usr/lib/wsl/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export REIWA_DEVICE=cuda
+export REIWA_REQUIRE_ROCM=1
 export PYTHONPATH="$PROJECT/src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONUNBUFFERED=1
 cd "$PROJECT"
-python "$PROJECT/scripts/gpu_smoke.py"
-exec python -m destroyer.app
+
+echo "[DESTROYER ROCm 6.4.2] Runtime diagnostics:"
+"$PYTHON" "$PROJECT/scripts/rocm_wsl_diagnostics.py" \
+  || fail "Python/ROCm versions or WSL runtime prerequisites are inconsistent."
+
+echo "[DESTROYER ROCm 6.4.2] Running bounded DQN GPU smoke test..."
+timeout --foreground 120s "$PYTHON" "$PROJECT/scripts/gpu_smoke.py" \
+  || fail "ROCm GPU smoke test failed or exceeded 120 seconds. The GUI was not started and CPU fallback is disabled."
+
+echo "[DESTROYER ROCm 6.4.2] GPU training step verified. Starting DESTROYER."
+exec "$PYTHON" -m destroyer.app
